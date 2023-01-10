@@ -6,21 +6,22 @@ import java.util.Map;
 
 import domain.exceptions.EnrollmentRulesViolationException;
 
+
 public class EnrollCtrl {
-    public void enroll(Student s, List<CSE> courses) throws EnrollmentRulesViolationException {
-        Map<Course, Double> transcript = new HashMap<>() ;
-        for ( Map<Course, Double> a : s.getTranscript().values()){
-            transcript.putAll(a);
+    public void enroll(Student student, List<CSE> courses) throws EnrollmentRulesViolationException {
+        Map<Course, Double> allCourses = new HashMap<>();
+        for (Map<Course, Double> coursesInTerm : student.getTranscript().values()) {
+            allCourses.putAll(coursesInTerm);
         }
-        for (CSE o : courses) {
-            checkIfPassed(o.getCourse(), transcript);
-            checkPrerequisites(o.getCourse(), transcript);
-            checkForConflicts(o, courses);
+        for (CSE course : courses) {
+            checkIfPassed(course.getCourse(), allCourses);
+            checkPrerequisites(course.getCourse(), allCourses);
+            checkForConflicts(course, courses);
         }
         int unitsRequested = calculateUnitsRequested(courses);
-        checkUnitsRequested(unitsRequested, transcript);
-        for (CSE o : courses) {
-            s.takeCourse(o.getCourse(), o.getSection());
+        checkUnitsRequested(unitsRequested, allCourses);
+        for (CSE course : courses) {
+            student.takeCourse(course.getCourse(), course.getSection());
         }
     }
 
@@ -38,28 +39,26 @@ public class EnrollCtrl {
         }
     }
 
-    private void checkForConflicts(CSE o, List<CSE> courses) throws EnrollmentRulesViolationException {
-        for (CSE o2 : courses) {
-            if (o == o2) {
-                continue;
-            }
-            if (o.getExamTime().equals(o2.getExamTime())) {
-                throw new EnrollmentRulesViolationException(String.format("Two offerings %s and %s have the same exam time", o, o2));
-            }
-            if (o.getCourse().equals(o2.getCourse())) {
-                throw new EnrollmentRulesViolationException(String.format("%s is requested to be taken twice", o.getCourse().getName()));
-            }
-        }
-    }
-
     private int calculateUnitsRequested(List<CSE> courses) {
         int unitsRequested = 0;
-        for (CSE o : courses) {
-            unitsRequested += o.getCourse().getUnits();
+        for (CSE course : courses) {
+            unitsRequested += course.getCourse().getUnits();
         }
         return unitsRequested;
     }
-
+    private void checkForConflicts(CSE currentCourse, List<CSE> courses) throws EnrollmentRulesViolationException {
+        for (CSE course : courses) {
+            if (currentCourse == course) {
+                continue;
+            }
+            if (currentCourse.getExamTime().equals(course.getExamTime())) {
+                throw new EnrollmentRulesViolationException(String.format("Two offerings %s and %s have the same exam time", currentCourse, course));
+            }
+            if (currentCourse.getCourse().equals(course.getCourse())) {
+                throw new EnrollmentRulesViolationException(String.format("%s is requested to be taken twice", currentCourse.getCourse().getName()));
+            }
+        }
+    }
     private void checkUnitsRequested(int unitsRequested, Map<Course, Double> transcript) throws EnrollmentRulesViolationException {
         double points = 0;
         int totalUnits = 0;
